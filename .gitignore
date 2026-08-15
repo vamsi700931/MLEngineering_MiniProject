@@ -16,9 +16,15 @@ env/
 .ipynb_checkpoints/
 
 # Data
+
 data/raw/*
+!data/raw/*.dvc
+
 data/interim/*
+!data/interim/*.dvc
+
 data/processed/*
+!data/processed/*.dvc
 
 # MLflow
 mlruns/

@@ -1,0 +1,5 @@
+outs:
+- md5: 1ef2050c50e2f7b4ebd5576cf6788548
+  size: 1351031
+  hash: md5
+  path: nyc_taxi_trip_duration_10000.csv

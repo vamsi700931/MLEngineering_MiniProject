@@ -1,0 +1,5 @@
+outs:
+- md5: 74ce92530e5fbd021b5c037e9a5227d2
+  size: 1203441
+  hash: md5
+  path: nyc_taxi_features_10000.csv

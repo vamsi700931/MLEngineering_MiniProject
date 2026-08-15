@@ -13,16 +13,23 @@ INPUT_FILE = (
     / "nyc_taxi_trip_duration_10000.csv"
 )
 
-OUTPUT_FILE = (
+CSV_OUTPUT_FILE = (
     PROJECT_ROOT
     / "data"
     / "processed"
     / "nyc_taxi_features_10000.csv"
 )
 
+PARQUET_OUTPUT_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "nyc_taxi_features_10000.parquet"
+)
+
 
 def load_dataset() -> pd.DataFrame:
-    """Load the validated project dataset."""
+    """Load the ingested project dataset."""
 
     if not INPUT_FILE.exists():
         raise FileNotFoundError(
@@ -33,77 +40,107 @@ def load_dataset() -> pd.DataFrame:
 
 
 def calculate_haversine_distance(
-    lat1,
-    lon1,
-    lat2,
-    lon2,
-) -> np.ndarray:
-    """Calculate straight-line distance between two coordinates."""
+    pickup_latitude: pd.Series,
+    pickup_longitude: pd.Series,
+    dropoff_latitude: pd.Series,
+    dropoff_longitude: pd.Series,
+) -> pd.Series:
+    """
+    Calculate great-circle distance between pickup and drop-off
+    coordinates using the Haversine formula.
+
+    Returns distance in kilometers.
+    """
 
     earth_radius_km = 6371.0
 
-    lat1 = np.radians(lat1)
-    lon1 = np.radians(lon1)
-    lat2 = np.radians(lat2)
-    lon2 = np.radians(lon2)
+    latitude_1 = np.radians(pickup_latitude)
+    latitude_2 = np.radians(dropoff_latitude)
 
-    delta_lat = lat2 - lat1
-    delta_lon = lon2 - lon1
-
-    a = (
-        np.sin(delta_lat / 2) ** 2
-        + np.cos(lat1)
-        * np.cos(lat2)
-        * np.sin(delta_lon / 2) ** 2
+    delta_latitude = np.radians(
+        dropoff_latitude - pickup_latitude
     )
 
-    c = 2 * np.arctan2(
-        np.sqrt(a),
-        np.sqrt(1 - a),
+    delta_longitude = np.radians(
+        dropoff_longitude - pickup_longitude
+    )
+
+    a = (
+        np.sin(delta_latitude / 2) ** 2
+        + np.cos(latitude_1)
+        * np.cos(latitude_2)
+        * np.sin(delta_longitude / 2) ** 2
+    )
+
+    c = 2 * np.arcsin(
+        np.sqrt(a)
     )
 
     return earth_radius_km * c
 
 
-def build_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Build the required ETA prediction features."""
+def build_features(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build features required for ETA prediction."""
 
     df = df.copy()
 
-    pickup_datetime = pd.to_datetime(
+    # ---------------------------------------------------------
+    # Timestamp conversion
+    # ---------------------------------------------------------
+    # Convert pickup_datetime to a real pandas datetime.
+    # This is required by Feast as the event timestamp.
+    df["pickup_datetime"] = pd.to_datetime(
         df["pickup_datetime"],
         errors="raise",
     )
 
-    # Required time-based features
-    df["pickup_hour"] = pickup_datetime.dt.hour
+    # Convert drop-off timestamp as well for validation/
+    # consistency, although it is not retained as a model feature.
+    df["dropoff_datetime"] = pd.to_datetime(
+        df["dropoff_datetime"],
+        errors="raise",
+    )
+
+    # ---------------------------------------------------------
+    # Time-based features
+    # ---------------------------------------------------------
+    df["pickup_hour"] = (
+        df["pickup_datetime"].dt.hour
+    )
 
     df["pickup_day_of_week"] = (
-        pickup_datetime.dt.dayofweek
+        df["pickup_datetime"].dt.dayofweek
     )
 
     df["is_weekend"] = (
-            pickup_datetime.dt.dayofweek >= 5
+        df["pickup_day_of_week"] >= 5
     ).astype(int)
 
-    # Required distance feature
+    # ---------------------------------------------------------
+    # Distance feature
+    # ---------------------------------------------------------
     df["distance_km"] = calculate_haversine_distance(
-        df["pickup_latitude"],
-        df["pickup_longitude"],
-        df["dropoff_latitude"],
-        df["dropoff_longitude"],
+        pickup_latitude=df["pickup_latitude"],
+        pickup_longitude=df["pickup_longitude"],
+        dropoff_latitude=df["dropoff_latitude"],
+        dropoff_longitude=df["dropoff_longitude"],
     )
 
-    return df
-
-
-def select_model_columns(
-    df: pd.DataFrame,
-) -> pd.DataFrame:
-    """Select model features and target."""
-
-    columns = [
+    # ---------------------------------------------------------
+    # Select final feature dataset
+    # ---------------------------------------------------------
+    # pickup_datetime is intentionally retained because Feast
+    # uses it as the event timestamp.
+    #
+    # trip_duration is retained as the prediction target.
+    #
+    # dropoff_datetime is not retained because it would create
+    # target leakage for ETA prediction.
+    selected_columns = [
         "id",
+        "pickup_datetime",
         "vendor_id",
         "passenger_count",
         "pickup_longitude",
@@ -118,28 +155,43 @@ def select_model_columns(
         "trip_duration",
     ]
 
-    return df[columns].copy()
+    return df[selected_columns]
 
 
-def save_features(df: pd.DataFrame) -> None:
-    """Save the engineered feature dataset."""
+def save_features(
+    df: pd.DataFrame,
+) -> None:
+    """Save engineered features as CSV and Parquet."""
 
-    OUTPUT_FILE.parent.mkdir(
+    CSV_OUTPUT_FILE.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
+    # Save CSV
     df.to_csv(
-        OUTPUT_FILE,
+        CSV_OUTPUT_FILE,
+        index=False,
+    )
+
+    # Save Parquet
+    df.to_parquet(
+        PARQUET_OUTPUT_FILE,
         index=False,
     )
 
     print(
-        f"Feature dataset saved to: {OUTPUT_FILE}"
+        f"CSV feature dataset saved to: "
+        f"{CSV_OUTPUT_FILE}"
+    )
+
+    print(
+        f"Parquet feature dataset saved to: "
+        f"{PARQUET_OUTPUT_FILE}"
     )
 
 
-def run_feature_pipeline() -> None:
+def main() -> None:
     """Run the feature building pipeline."""
 
     print("Starting feature building pipeline...")
@@ -152,16 +204,12 @@ def run_feature_pipeline() -> None:
 
     feature_df = build_features(df)
 
-    feature_df = select_model_columns(
-        feature_df
-    )
-
     print(
         f"Output records: {len(feature_df):,}"
     )
 
     print(
-        f"Output features: {len(feature_df.columns)}"
+        f"Output features: {len(feature_df.columns):,}"
     )
 
     save_features(feature_df)
@@ -172,4 +220,4 @@ def run_feature_pipeline() -> None:
 
 
 if __name__ == "__main__":
-    run_feature_pipeline()
+    main()

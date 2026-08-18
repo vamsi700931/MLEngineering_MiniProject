@@ -39,3 +39,6 @@ Thumbs.db
 
 # Feast local state
 feature_store/feature_repo/data/*.db
+
+mlflow.db
+mlruns/

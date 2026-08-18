@@ -1,0 +1,8 @@
+{
+    "model": "RandomForestRegressor",
+    "records": 10000,
+    "test_records": 2000,
+    "mae_seconds": 457.8,
+    "rmse_seconds": 2395.72,
+    "r2": -0.4024
+}

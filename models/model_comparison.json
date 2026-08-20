@@ -1,0 +1,39 @@
+{
+    "selection_metric": "rmse_seconds",
+    "selection_direction": "lower_is_better",
+    "models": [
+        {
+            "model": "RandomForestRegressor",
+            "experiment": "random_forest_eta",
+            "mlflow_run_id": "cc20de33f30847f2a463ccc5153a5146",
+            "mae_seconds": 499.46,
+            "rmse_seconds": 3083.49,
+            "r2": -1.3232
+        },
+        {
+            "model": "GradientBoostingRegressor",
+            "experiment": "gradient_boosting_eta",
+            "mlflow_run_id": "bd54c1a84d3d4364bf6da28e107ab508",
+            "mae_seconds": 538.7,
+            "rmse_seconds": 2692.97,
+            "r2": -0.772
+        },
+        {
+            "model": "GradientBoostingRegressor",
+            "experiment": "tuned_gradient_boosting",
+            "mlflow_run_id": "5795a945309f4c909ce00b332e6e874d",
+            "mae_seconds": 504.4,
+            "rmse_seconds": 2590.0,
+            "r2": -0.6391
+        }
+    ],
+    "selected_model": {
+        "model": "GradientBoostingRegressor",
+        "experiment": "tuned_gradient_boosting",
+        "mlflow_run_id": "5795a945309f4c909ce00b332e6e874d",
+        "mae_seconds": 504.4,
+        "rmse_seconds": 2590.0,
+        "r2": -0.6391
+    },
+    "selection_reason": "Selected based on the lowest RMSE among the evaluated models."
+}

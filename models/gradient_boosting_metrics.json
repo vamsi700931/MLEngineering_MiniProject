@@ -1,0 +1,13 @@
+{
+    "model": "GradientBoostingRegressor",
+    "experiment": "tuned_gradient_boosting",
+    "records": 10000,
+    "test_records": 2000,
+    "n_estimators": 300,
+    "learning_rate": 0.03,
+    "max_depth": 4,
+    "min_samples_leaf": 3,
+    "mae_seconds": 504.4,
+    "rmse_seconds": 2590.0,
+    "r2": -0.6391
+}

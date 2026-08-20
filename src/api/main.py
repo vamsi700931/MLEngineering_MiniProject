@@ -1,12 +1,13 @@
 from pathlib import Path
 import sys
+import uuid
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 
 # ------------------------------------------------------------------
-# Make src/model available for import
+# Project paths
 # ------------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +17,12 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 
+# ------------------------------------------------------------------
+# Model and monitoring imports
+# ------------------------------------------------------------------
+
 from model.predict import predict_eta
+from monitoring.prediction_logger import log_prediction
 
 
 # ------------------------------------------------------------------
@@ -128,6 +134,10 @@ def health_check():
 def predict(request: PredictionRequest):
 
     try:
+        # ----------------------------------------------------------
+        # Generate prediction
+        # ----------------------------------------------------------
+
         predicted_duration = predict_eta(
             vendor_id=request.vendor_id,
             passenger_count=request.passenger_count,
@@ -143,6 +153,30 @@ def predict(request: PredictionRequest):
         )
 
         predicted_minutes = predicted_duration / 60
+
+        # ----------------------------------------------------------
+        # Create prediction ID
+        # ----------------------------------------------------------
+
+        prediction_id = f"pred_{uuid.uuid4().hex[:12]}"
+
+        # ----------------------------------------------------------
+        # Log prediction
+        #
+        # Actual duration is not available at prediction time.
+        # It will be added later when the real trip duration
+        # becomes available.
+        # ----------------------------------------------------------
+
+        log_prediction(
+            prediction_id=prediction_id,
+            predicted_duration_seconds=predicted_duration,
+            actual_duration_seconds=None,
+        )
+
+        # ----------------------------------------------------------
+        # Return API response
+        # ----------------------------------------------------------
 
         return PredictionResponse(
             predicted_trip_duration_seconds=round(

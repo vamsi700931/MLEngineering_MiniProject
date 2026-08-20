@@ -43,3 +43,5 @@ feature_store/feature_repo/data/*.db
 mlflow.db
 mlruns/
 
+# Runtime monitoring logs
+data/monitoring/

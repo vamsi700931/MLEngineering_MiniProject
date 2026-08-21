@@ -101,16 +101,24 @@ def validate_timestamps(df: pd.DataFrame) -> None:
         errors="coerce",
     )
 
-    invalid_pickup = pickup.isna().sum()
-    invalid_dropoff = dropoff.isna().sum()
+    invalid_pickup = int(pickup.isna().sum())
+    invalid_dropoff = int(dropoff.isna().sum())
 
-    invalid_order = (dropoff < pickup).sum()
+    invalid_order = int((dropoff < pickup).sum())
 
     print("\nTimestamp validation:")
 
-    print(f"Invalid pickup timestamps: {invalid_pickup}")
-    print(f"Invalid drop-off timestamps: {invalid_dropoff}")
-    print(f"Drop-off before pickup: {invalid_order}")
+    print(
+        f"Invalid pickup timestamps: {invalid_pickup}"
+    )
+
+    print(
+        f"Invalid drop-off timestamps: {invalid_dropoff}"
+    )
+
+    print(
+        f"Drop-off before pickup: {invalid_order}"
+    )
 
     if (
         invalid_pickup == 0
@@ -125,7 +133,15 @@ def validate_timestamps(df: pd.DataFrame) -> None:
 
 
 def validate_coordinates(df: pd.DataFrame) -> None:
-    """Validate latitude and longitude ranges."""
+    """
+    Validate GPS coordinates.
+
+    Checks:
+    1. Missing pickup/drop-off latitude values.
+    2. Missing pickup/drop-off longitude values.
+    3. Latitude values outside the valid range [-90, 90].
+    4. Longitude values outside the valid range [-180, 180].
+    """
 
     latitude_columns = [
         "pickup_latitude",
@@ -137,36 +153,114 @@ def validate_coordinates(df: pd.DataFrame) -> None:
         "dropoff_longitude",
     ]
 
+    # --------------------------------------------------------------
+    # Check missing GPS values
+    # --------------------------------------------------------------
+
+    missing_pickup_latitude = int(
+        df["pickup_latitude"].isna().sum()
+    )
+
+    missing_pickup_longitude = int(
+        df["pickup_longitude"].isna().sum()
+    )
+
+    missing_dropoff_latitude = int(
+        df["dropoff_latitude"].isna().sum()
+    )
+
+    missing_dropoff_longitude = int(
+        df["dropoff_longitude"].isna().sum()
+    )
+
+    total_missing_gps = (
+        missing_pickup_latitude
+        + missing_pickup_longitude
+        + missing_dropoff_latitude
+        + missing_dropoff_longitude
+    )
+
+    # --------------------------------------------------------------
+    # Check GPS coordinate ranges
+    # --------------------------------------------------------------
+
     invalid_latitude = 0
     invalid_longitude = 0
 
     for column in latitude_columns:
-        invalid_latitude += (
-            ~df[column].between(-90, 90)
-        ).sum()
+        invalid_latitude += int(
+            (
+                df[column].notna()
+                & ~df[column].between(-90, 90)
+            ).sum()
+        )
 
     for column in longitude_columns:
-        invalid_longitude += (
-            ~df[column].between(-180, 180)
-        ).sum()
+        invalid_longitude += int(
+            (
+                df[column].notna()
+                & ~df[column].between(-180, 180)
+            ).sum()
+        )
 
-    print("\nCoordinate validation:")
+    total_invalid_coordinates = (
+        invalid_latitude + invalid_longitude
+    )
+
+    # --------------------------------------------------------------
+    # Report results
+    # --------------------------------------------------------------
+
+    print("\nGPS validation:")
 
     print(
-        f"Invalid latitude values: {invalid_latitude}"
+        f"Missing pickup latitude:       "
+        f"{missing_pickup_latitude}"
     )
 
     print(
-        f"Invalid longitude values: {invalid_longitude}"
+        f"Missing pickup longitude:      "
+        f"{missing_pickup_longitude}"
     )
 
-    if invalid_latitude == 0 and invalid_longitude == 0:
-        print("Coordinate validation: PASSED")
+    print(
+        f"Missing drop-off latitude:     "
+        f"{missing_dropoff_latitude}"
+    )
+
+    print(
+        f"Missing drop-off longitude:    "
+        f"{missing_dropoff_longitude}"
+    )
+
+    print(
+        f"Invalid latitude values:       "
+        f"{invalid_latitude}"
+    )
+
+    print(
+        f"Invalid longitude values:      "
+        f"{invalid_longitude}"
+    )
+
+    # --------------------------------------------------------------
+    # Validation result
+    # --------------------------------------------------------------
+
+    if (
+        total_missing_gps == 0
+        and total_invalid_coordinates == 0
+    ):
+        print("GPS validation: PASSED")
     else:
         raise ValueError(
-            "Coordinate validation failed."
+            "GPS validation failed."
         )
-def report_coordinate_distribution(df: pd.DataFrame) -> None:
+
+
+def report_coordinate_distribution(
+    df: pd.DataFrame,
+) -> None:
     """Report geographic coordinate distribution."""
 
     coordinate_columns = [
@@ -178,7 +272,9 @@ def report_coordinate_distribution(df: pd.DataFrame) -> None:
 
     print("\nCoordinate distribution:")
 
-    distribution = df[coordinate_columns].describe(
+    distribution = df[
+        coordinate_columns
+    ].describe(
         percentiles=[0.01, 0.50, 0.99]
     ).T
 
@@ -193,6 +289,8 @@ def report_coordinate_distribution(df: pd.DataFrame) -> None:
             ]
         ]
     )
+
+
 def report_trip_duration_distribution(
     df: pd.DataFrame,
 ) -> None:
@@ -202,15 +300,50 @@ def report_trip_duration_distribution(
 
     print("\nTrip-duration distribution:")
 
-    print(f"Minimum: {duration.min():.2f} seconds")
-    print(f"1st percentile: {duration.quantile(0.01):.2f} seconds")
-    print(f"25th percentile: {duration.quantile(0.25):.2f} seconds")
-    print(f"Median: {duration.median():.2f} seconds")
-    print(f"75th percentile: {duration.quantile(0.75):.2f} seconds")
-    print(f"99th percentile: {duration.quantile(0.99):.2f} seconds")
-    print(f"Maximum: {duration.max():.2f} seconds")
-    print(f"Mean: {duration.mean():.2f} seconds")
-    print(f"Standard deviation: {duration.std():.2f} seconds")
+    print(
+        f"Minimum: "
+        f"{duration.min():.2f} seconds"
+    )
+
+    print(
+        f"1st percentile: "
+        f"{duration.quantile(0.01):.2f} seconds"
+    )
+
+    print(
+        f"25th percentile: "
+        f"{duration.quantile(0.25):.2f} seconds"
+    )
+
+    print(
+        f"Median: "
+        f"{duration.median():.2f} seconds"
+    )
+
+    print(
+        f"75th percentile: "
+        f"{duration.quantile(0.75):.2f} seconds"
+    )
+
+    print(
+        f"99th percentile: "
+        f"{duration.quantile(0.99):.2f} seconds"
+    )
+
+    print(
+        f"Maximum: "
+        f"{duration.max():.2f} seconds"
+    )
+
+    print(
+        f"Mean: "
+        f"{duration.mean():.2f} seconds"
+    )
+
+    print(
+        f"Standard deviation: "
+        f"{duration.std():.2f} seconds"
+    )
 
     q1 = duration.quantile(0.25)
     q3 = duration.quantile(0.75)
@@ -226,16 +359,39 @@ def report_trip_duration_distribution(
     )
 
     print("\nIQR outlier analysis:")
-    print(f"Q1: {q1:.2f} seconds")
-    print(f"Q3: {q3:.2f} seconds")
-    print(f"IQR: {iqr:.2f} seconds")
-    print(f"Lower bound: {lower_bound:.2f} seconds")
-    print(f"Upper bound: {upper_bound:.2f} seconds")
-    print(f"Outlier records: {outliers.sum():,}")
+
+    print(
+        f"Q1: {q1:.2f} seconds"
+    )
+
+    print(
+        f"Q3: {q3:.2f} seconds"
+    )
+
+    print(
+        f"IQR: {iqr:.2f} seconds"
+    )
+
+    print(
+        f"Lower bound: "
+        f"{lower_bound:.2f} seconds"
+    )
+
+    print(
+        f"Upper bound: "
+        f"{upper_bound:.2f} seconds"
+    )
+
+    print(
+        f"Outlier records: "
+        f"{outliers.sum():,}"
+    )
+
     print(
         f"Outlier percentage: "
         f"{(outliers.mean() * 100):.2f}%"
     )
+
 
 def report_extreme_trip_durations(
     df: pd.DataFrame,
@@ -272,7 +428,10 @@ def report_extreme_trip_durations(
         longest_trips.to_string(index=False)
     )
 
-def validate_passenger_count(df: pd.DataFrame) -> None:
+
+def validate_passenger_count(
+    df: pd.DataFrame,
+) -> None:
     """Validate passenger count."""
 
     invalid_passengers = (
@@ -282,18 +441,23 @@ def validate_passenger_count(df: pd.DataFrame) -> None:
     print("\nPassenger-count validation:")
 
     print(
-        f"Invalid passenger counts: {invalid_passengers}"
+        f"Invalid passenger counts: "
+        f"{invalid_passengers}"
     )
 
     if invalid_passengers == 0:
-        print("Passenger-count validation: PASSED")
+        print(
+            "Passenger-count validation: PASSED"
+        )
     else:
         raise ValueError(
             "Passenger-count validation failed."
         )
 
 
-def validate_trip_duration(df: pd.DataFrame) -> None:
+def validate_trip_duration(
+    df: pd.DataFrame,
+) -> None:
     """Validate trip duration target."""
 
     invalid_duration = (
@@ -303,11 +467,14 @@ def validate_trip_duration(df: pd.DataFrame) -> None:
     print("\nTrip-duration validation:")
 
     print(
-        f"Invalid trip durations: {invalid_duration}"
+        f"Invalid trip durations: "
+        f"{invalid_duration}"
     )
 
     if invalid_duration == 0:
-        print("Trip-duration validation: PASSED")
+        print(
+            "Trip-duration validation: PASSED"
+        )
     else:
         raise ValueError(
             "Trip-duration validation failed."
@@ -315,17 +482,31 @@ def validate_trip_duration(df: pd.DataFrame) -> None:
 
 
 if __name__ == "__main__":
+
     df = load_dataset()
 
-    print(f"Dataset records: {len(df):,}")
-    print(f"Dataset columns: {len(df.columns)}")
+    print(
+        f"Dataset records: {len(df):,}"
+    )
+
+    print(
+        f"Dataset columns: {len(df.columns)}"
+    )
 
     validate_schema(df)
+
     validate_missing_values(df)
+
     validate_timestamps(df)
+
     validate_coordinates(df)
+
     validate_passenger_count(df)
+
     validate_trip_duration(df)
+
     report_coordinate_distribution(df)
+
     report_trip_duration_distribution(df)
+
     report_extreme_trip_durations(df)

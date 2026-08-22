@@ -26,6 +26,15 @@ The implemented lifecycle covers:
 - API latency measurement
 
 ---
+## Contributors
+
+| Contributor | Email |
+|---|---|
+| **ABHISHEK SEKHAR** | 2025paml577@wilp.bits-pilani.ac.in |
+| **BIKRAM KUMAR SWAIN** | 2025paml578@wilp.bits-pilani.ac.in |
+| **KOTA VAMSI KRISHNA** | 2025paml576@wilp.bits-pilani.ac.in |
+
+---
 
 ## 2. Problem Statement
 

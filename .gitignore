@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# IDE
+.idea/*
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data
+
+data/raw/*
+!data/raw/*.dvc
+
+data/interim/*
+!data/interim/*.dvc
+
+data/processed/*
+!data/processed/*.dvc
+
+# MLflow
+mlruns/
+
+# Model files
+*.pkl
+*.joblib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Feast local state
+feature_store/feature_repo/data/*.db
+
+mlflow.db
+mlruns/
+
+# Runtime monitoring logs
+data/monitoring/

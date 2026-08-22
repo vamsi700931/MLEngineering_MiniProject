@@ -1,0 +1,5 @@
+outs:
+- md5: 0fa79f0cd0836f3136bc808996566345
+  size: 505505
+  hash: md5
+  path: nyc_taxi_features_10000.parquet
